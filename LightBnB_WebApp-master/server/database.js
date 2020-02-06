@@ -21,7 +21,6 @@ const getUserWithEmail = function(email) {
   return pool.query(`SELECT * FROM users WHERE LOWER(email) = $1`, [email.toLowerCase()])
     .then((res) => {
       let user = res.rows[0];
-      console.log(user);
       if (user) {
         return Promise.resolve(user);
       } else {
@@ -65,16 +64,8 @@ const addUser =  function(user) {
         return null;
       }
     });
-  // const userId = Object.keys(users).length + 1;
-  // user.id = userId;
-  // users[userId] = user;
-  // return Promise.resolve(user);
 };
 exports.addUser = addUser;
-
-// INSERT INTO users (id, name, email, password) VALUES
-//   (1, 'Eva Stanley', 'eva.st@hotmail.com', '$2a$10$FB/BOAVhpuLvpOREQVmvmezD4ED/.JBIDRh70tGevYzYzQgFId2u.'),
-
 
 /// Reservations
 
@@ -84,8 +75,21 @@ exports.addUser = addUser;
  * @return {Promise<[{}]>} A promise to the reservations.
  */
 const getAllReservations = function(guest_id, limit = 10) {
-  return getAllProperties(null, 2);
-}
+  return pool.query(`
+  SELECT reservations.*, properties.*, avg(property_reviews.rating) as average_rating
+  FROM reservations
+  JOIN properties ON reservations.property_id = properties.id
+  JOIN property_reviews ON properties.id = property_reviews.property_id
+  WHERE reservations.guest_id = $1
+  GROUP BY properties.id, reservations.id
+  HAVING reservations.end_date < now()::date
+  ORDER BY reservations.start_date
+  LIMIT $2;
+  `,[guest_id, limit])
+    .then((res) => {
+      return res.rows;
+    });
+};
 exports.getAllReservations = getAllReservations;
 
 /// Properties
