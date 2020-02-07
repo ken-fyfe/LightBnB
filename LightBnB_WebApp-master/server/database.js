@@ -105,6 +105,7 @@ const getAllProperties = function(options, limit = 10) {
   console.log('options :', options);
   // 1
   const queryParams = [];
+  let tempString = '';
   // 2
   let queryString = `
   SELECT properties.*, avg(property_reviews.rating) as average_rating
@@ -118,13 +119,23 @@ const getAllProperties = function(options, limit = 10) {
   }
 
   if (options.minimum_price_per_night) {
-    queryParams.push(`${options.minimum_price_per_night}`);
-    queryString += `AND cost_per_night > $${queryParams.length} `;
+    queryParams.push(options.minimum_price_per_night * 100);
+    tempString = `cost_per_night > $${queryParams.length} `;
+    if (options.city) {
+      queryString += 'AND ' + tempString;
+    } else {
+      queryString += 'WHERE ' + tempString;
+    }
   }
 
   if (options.maximum_price_per_night) {
-    queryParams.push(`${options.maximum_price_per_night}`);
-    queryString += `AND cost_per_night < $${queryParams.length} `;
+    queryParams.push(options.maximum_price_per_night * 100);
+    tempString = `cost_per_night < $${queryParams.length} `;
+    if (options.city || options.minimum_price_per_night) {
+      queryString += 'AND ' + tempString;
+    } else {
+      queryString += 'WHERE ' + tempString;
+    }
   }
 
   if (options.minimum_rating) {
